@@ -2,8 +2,6 @@
 
 用**指定的某一个 LoRA** 做权重 XY 扫描，把结果拼成带标签的图表，并可逐张标注 / 按标签命名保存。
 
-ComfyUI 自带的 `ZML_XY_LoRA_Loader` 只能扫描"文件夹里前 N 个 LoRA"，无法指定某一个；Efficiency / Easy-Use 的 XY 节点又要求 checkpoint 输入，配不了 `UNETLoader + CLIPLoader` 这类模型（Anima、Krea2 等）。本插件就是补这两个洞。
-
 - 输入直接是 **MODEL**，适配 UNET + CLIP 分离加载的模型
 - **可强制换行**：11 档权重拼成 6×2，比 1×11 好读得多
 - 颜色、字体、边框、标题都能调，出图接近成品图表
