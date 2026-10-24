@@ -47,7 +47,14 @@ git clone https://github.com/wanet36/ComfyUI-XY-LoRA.git
 
 依赖：只有 ComfyUI 自带的 `Pillow` / `numpy` / `torch`，不需要额外安装。
 
-批量文本节点在**独立的子目录** `comfyui_batch_text/` 里，需要的话把那个文件夹单独复制到 `custom_nodes/` 下（不能和本插件放在同一层，ComfyUI 只扫描 `custom_nodes/` 的一级子目录）。细节见 [comfyui_batch_text/README.md](comfyui_batch_text/README.md)。
+批量文本节点（批量读 txt → 提示词 / 条件）是**另一个独立插件**，单独装：
+
+```bash
+cd ComfyUI/custom_nodes
+git clone https://github.com/wanet36/ComfyUI-Batch-Text.git
+```
+
+本插件不依赖它，不装也不影响上面的 4 个节点。
 
 > 本文的截图统一放在 `images/` 目录下，文件名与正文里的引用一一对应。图片清单、尺寸约定和补图说明见 [images/README.md](images/README.md)。
 
@@ -399,13 +406,8 @@ ComfyUI-XY-LoRA/
 │   └── anima_xy_lora_autocomplete.js  「LoRA名称」输入框的自动补全
 ├── fonts/                   （可选，自己建）放字体，显示为「本地\xxx.ttf」
 ├── images/                  README 用到的截图
-├── workflows/
-│   ├── lora权重测试.json        XY 权重扫描示例（4 个节点 + KSampler 全接好）
-│   └── 文本批量生成图片.json     批量文本生图示例（需 comfyui_batch_text）
-└── comfyui_batch_text/      可选的独立插件：批量读 txt → 提示词 / 条件
-    ├── __init__.py
-    ├── batch_text.py
-    └── README.md
+└── workflows/
+    └── lora权重测试.json        XY 权重扫描示例（4 个节点 + KSampler 全接好）
 ```
 
 两个 JS 会被 ComfyUI 自动加载（`WEB_DIRECTORY = "./web"`），不需要手动引入。
@@ -414,7 +416,7 @@ ComfyUI-XY-LoRA/
 
 ## 示例工作流
 
-`workflows/` 下有两个可直接拖进 ComfyUI 的工作流。
+`workflows/lora权重测试.json` 可直接拖进 ComfyUI（批量文本生图的示例在 [ComfyUI-Batch-Text](https://github.com/wanet36/ComfyUI-Batch-Text) 仓库里）。
 
 ### lora权重测试.json
 
@@ -424,15 +426,6 @@ README 里所有截图的来源，跑 LoRA 权重 XY 扫描：
 - `KSampler` + `EmptyLatentImage`，latent 已连好，导入即可跑
 - 同时接了 `XY lora图像拼接`（出大图）和 `XY lora图像标注` → `XY lora图像保存`（出单张带字图）
 - 打开后如果 LoRA 路径报错，把「LoRA名称」换成你自己模型库里的那条即可
-
-### 文本批量生成图片.json
-
-跑 LoRA 权重扫描之外的另一条常用链：一个文件夹的 txt → 一批图。**需要 `comfyui_batch_text` 插件**。
-
-- `批量文本生成`（`comfyui_BatchTextToCond`）读 `*.txt`，每行/每段一条提示词，逐条编码成条件
-- `KSampler` 收到列表后逐条执行，`EmptyLatentImage` 已接好
-- 标签规则默认「源文件名」，方便回头找是哪条提示词出的图
-- 文本文件夹留空 = 读 `ComfyUI/input/`；改「最大条数」控制跑几张
 
 ---
 
