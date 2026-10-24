@@ -58,7 +58,7 @@ git clone https://github.com/wanet36/ComfyUI-XY-LoRA.git
 | class_type | 显示名 | 作用 |
 |---|---|---|
 | `comfyui_XYLoRA` | **XY lora模型加载** | 按名字选 LoRA，输出 5/11 档权重的模型列表 + 图表信息 |
-| `comfyui_XYGridDrawer` | **XY lora图像拼接** | 把多张图拼成带标签的图表（替代 `ZML_XY_Grid_Drawer`） |
+| `comfyui_XYGridDrawer` | **XY lora图像拼接** | 把多张图拼成一张带标签的图表 |
 | `comfyui_ImageBadge` | **XY lora图像标注** | 逐张在图上写标签（LoRA 名 + 权重） |
 | `comfyui_SaveWithLabels` | **XY lora图像保存** | 按标签命名保存（文件名里直接带 LoRA 名与权重） |
 
@@ -136,10 +136,10 @@ EmptyLatentImage ─────► KSampler.latent
 |---|---|---|
 | `模型` | MODEL 列表 | 每档一个，逐条执行 |
 | `CLIP` | CLIP 列表 | 与模型一一对应 |
-| `图表信息` | ZML_GRID_INFO | 布局字典，接拼接节点的「图表信息」 |
+| `图表信息` | 字典 | 布局信息，接拼接节点的「图表信息」 |
 | `标签列表` | STRING 列表 | 每档的标签，格式固定为 `LoRA文件名 (权重)`，如 `anima-base-1-masterpiece-v51 (0.5)` |
 
-`图表信息` 的结构（与 ZML 兼容，拼接节点按它排版）：
+`图表信息` 的结构（拼接节点按它排版）：
 
 ```python
 {
@@ -160,16 +160,14 @@ EmptyLatentImage ─────► KSampler.latent
 
 ## 2. XY lora图像拼接
 
-`comfyui_XYGridDrawer` · 分类 `XY LoRA` · **替代 `ZML_XY_Grid_Drawer`**
+`comfyui_XYGridDrawer` · 分类 `XY LoRA`
 
-把 XY 扫描产出的多张图拼成一张带标签的图表。与 ZML 的差别：
+把 XY 扫描产出的多张图拼成一张带标签的图表。几个特点：
 
-| | ZML XY Grid Drawer | 本节点 |
-|---|---|---|
-| 强制换行 | 只能按图表信息排成 1 行 | 「列数」填 N 即按 N 列换行 |
-| 字体来源 | 依赖 ZML 插件字体目录 | ZML 字体 → 本插件 `fonts/` → 系统字体，逐级回退 |
-| 单元格边框 / 标题 / 图片缩放 / 自定义颜色 | 无 | 有 |
-| 逐格标注 | 无 | 有（每张图下方写自己的标签） |
+- **能强制换行**：「列数」填 N 就按 N 列排，超出自动换行，图再多也不用挤成一条长条
+- **逐格标注**：每张图下方写自己的标签，配合换行最好读
+- **字体逐级回退**：插件自带字体 → 本插件 `fonts/` → 系统字体，缺字体只降级不报错
+- **单元格边框 / 总标题 / 图片缩放 / 自定义颜色**：出图更接近成品图表
 
 <p align="center"><img src="images/03-grid-node.png" alt="XY lora图像拼接节点" width="430"><br><sub>XY lora图像拼接：标题在最上方，背景/文字/边框三行色块带 × 清空，最后一行是单元格边框</sub></p>
 
@@ -181,11 +179,11 @@ EmptyLatentImage ─────► KSampler.latent
 |---|---|---|---|
 | `图像` | IMAGE | — | 接 `VAEDecode`。上游传列表时本节点一次性全部收下 |
 | `标题` | STRING | 空 | 画在图表正上方的总标题，留空不画 |
-| `字体` | 下拉 | 第一个可用 | 优先列出 `ComfyUI-ZML-Image` 的字体，其次本插件 `fonts/`，再次系统字体 |
+| `字体` | 下拉 | 第一个可用 | 优先列出 `custom_nodes` 下插件自带的字体，其次本插件 `fonts/`，再次系统字体 |
 | `字体文件路径` | STRING | 空 | 填绝对路径可覆盖上面的下拉；留空用下拉里的字体 |
 | `字体大小` | INT | 48 | 8 ~ 400。总标题会按 1.25 倍放大 |
 | `网格间距` | INT | 20 | 图与图、图与标签之间的留白，单位像素 |
-| `列数` | INT | 0 | **0 = 按图表信息排布**（与 ZML 一致，1×N 长条）；填 N = 强制每行 N 列，超出换行。图多时建议 5~8 |
+| `列数` | INT | 0 | **0 = 按图表信息排布**（排成 1×N 长条）；填 N = 强制每行 N 列，超出换行。图多时建议 5~8 |
 | `标签样式` | 下拉 | 轴标签(表头) | `轴标签(表头)` / `逐格标注` / `不显示` |
 
 **可选**
@@ -203,7 +201,7 @@ EmptyLatentImage ─────► KSampler.latent
 
 ### 三种标签样式
 
-- **轴标签(表头)**：与 ZML 行为一致。列标签画在顶部、行标签画在左侧，左上角画 `Y \ X` 形式的轴名。
+- **轴标签(表头)**：列标签画在顶部、行标签画在左侧，左上角画 `Y \ X` 形式的轴名。
   只有一行且没有 Y 轴标签时，轴名会挪到列标签上方当整条表头的标题，避免左侧留一大片空白。
 - **逐格标注**：每张图下方写自己的标签。配合「列数」换行使用，最常用的组合是 `列数 = 6` + 逐格标注。
 - **不显示**：纯拼图，不画任何文字。
@@ -220,7 +218,7 @@ EmptyLatentImage ─────► KSampler.latent
 
 ### 出图示例
 
-**列数 = 0，轴标签(表头)** —— 与 ZML 一致的一条长条，权重值排在顶部：
+**列数 = 0，轴标签(表头)** —— 排成一条长条，权重值排在顶部：
 
 <p align="center"><img src="images/05-result-axis.jpg" alt="轴标签模式拼图结果" width="1000"><br><sub>列数 0 + 轴标签(表头)：排成 1×11 长条，各档权重作列标签，左上角是「权重 | LoRA名」</sub></p>
 
@@ -274,7 +272,7 @@ EmptyLatentImage ─────► KSampler.latent
 |---|---|---|
 | `图像` | IMAGE | 标注后的图（批量） |
 
-字体固定走 ZML 字体目录回退链（`nfdcsCN24.ttf → nfdcsCN16.ttf → 系统字体`），本节点不提供字体选择。
+字体固定走插件字体目录回退链（`nfdcsCN24.ttf → nfdcsCN16.ttf → 系统字体`），本节点不提供字体选择。
 
 ---
 
@@ -342,7 +340,7 @@ anima-base-1-masterpiece-v51_0.75.png
 
 拼接节点的颜色输入还额外接受中文色名：`白色` `黑色` `灰色` `浅灰` `深灰` `红色` `绿色` `蓝色` `黄色`。
 
-**兼容旧工作流**：控件顺序调整过两次，前端会按 `widgets_values` 的项数（15 项 / 13 项）识别旧布局并按名字重新对齐，不会把值串到别的控件上。同时会把旧版本留下的自定义标题（如 `ZML XY Grid Drawer`、`Anima XY 图表拼接（替代 ZML）`）清掉，让标题回落到当前显示名。
+**兼容旧工作流**：控件顺序调整过两次，前端会按 `widgets_values` 的项数（15 项 / 13 项）识别旧布局并按名字重新对齐，不会把值串到别的控件上。同时会把旧版本留下的历史自定义标题清掉，让标题自动回落到当前显示名。
 
 ---
 
@@ -350,7 +348,7 @@ anima-base-1-masterpiece-v51_0.75.png
 
 拼接节点的字体下拉来自三处，按优先级排列：
 
-1. `custom_nodes/ComfyUI-ZML-Image/zml_w/Font/**`（沿用 ZML 的字体库，优先展示 6 个推荐中文字体）
+1. `custom_nodes` 下各插件自带的字体目录（`**/Font/**`，优先展示 6 个推荐中文字体）
 2. 本插件 `fonts/**`（自己往里丢 ttf/otf/ttc 即可，显示前缀 `本地\`）
 3. `C:\Windows\Fonts` 里的 `msyh.ttc` / `msyhbd.ttc` / `simhei.ttf` / `simsun.ttc` / `segoeui.ttf` / `arial.ttf`（显示前缀 `系统\`）
 
