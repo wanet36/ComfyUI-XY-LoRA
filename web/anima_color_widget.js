@@ -78,11 +78,7 @@ const GRID_CONFIG = {
     targets: GRID_TARGETS,
     pickOrder: pickGridOrder,
     // 老工作流里给这个节点起过的自定义标题；打开时清掉，让它回落到新的显示名
-    legacyTitles: [
-        "ZML XY Grid Drawer",
-        "Anima XY 图表拼接（替代 ZML）",
-        "XY 图表拼接（替代 ZML）",
-    ],
+    legacyTitles: [],
 };
 
 const BADGE_TARGETS = {

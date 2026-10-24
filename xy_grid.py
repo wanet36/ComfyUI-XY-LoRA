@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
-"""XY lora图像拼接 —— 替代 ZML_XY_Grid_Drawer
+"""XY lora图像拼接
 
-把一次 XY 扫描产出的多张图拼成一张带标签的图表，与 XY lora模型加载 的「图表信息」
-（ZML_GRID_INFO 字典）完全兼容，因此可以原位替换 ZML 的拼接节点。
+把一次 XY 扫描产出的多张图拼成一张带标签的图表，与「XY lora模型加载」输出的
+图表信息（XY_GRID_INFO 字典）配套使用。
 
-相比 ZML 版本的三点改进：
-1. **可以强制换行**：ZML 只会照图表信息排成 1 行长条；本节点把「列数」填 >0 时，
-   会按该列数换行，并自动改用「逐格标注」把每张图的标签画在图片下方
+三个特点：
+1. **可以强制换行**：默认按图表信息排成 1 行长条；把「列数」填 >0 时按该列数换行，
+   并自动改用「逐格标注」把每张图的标签画在图片下方
    （11 档权重拼成 6×2 比 1×11 好读得多）。
-2. **字体不依赖 ZML 插件**：优先用 ZML 的字体目录（保持原有下拉体验），
-   找不到就依次退回本插件 fonts/ 目录、系统字体，不会因为插件缺失而报错。
+2. **字体逐级回退**：先扫 custom_nodes 下各插件自带的字体目录，其次本插件 fonts/，
+   再次系统字体，不会因为某个插件缺失而报错。
 3. **单元格边框 / 标题 / 图片缩放 / 自定义颜色**：出图更接近成品图表的观感。
 
-两种标注模式：
-- 轴标签(表头)：与 ZML 一致，列标签画在顶部、行标签画在左侧，左上角画 "Y \\ X"。
+三种标注模式：
+- 轴标签(表头)：列标签画在顶部、行标签画在左侧，左上角画 "Y \\ X"。
 - 逐格标注：每张图下方画自己的标签，配合「列数」换行使用。
 - 不显示：纯拼图。
 
@@ -23,6 +23,7 @@
 - 「标签列表」可选，接 XY lora模型加载 的「标签列表」，逐格标注时优先用它。
 """
 
+import glob
 import logging
 import math
 import os
@@ -108,9 +109,11 @@ def _font_table() -> Tuple[Tuple[str, str], ...]:
                     table.setdefault(prefix + rel, full)
 
     base = _base_path()
-    zml_font = os.path.join(base, "custom_nodes", "ComfyUI-ZML-Image", "zml_w", "Font")
-    if os.path.isdir(zml_font):
-        scan(zml_font)
+    # custom_nodes 下各插件自带的字体目录（形如 <插件>/…/Font），先扫到的优先
+    for pattern in ("*" + os.sep + "Font", "*" + os.sep + "*" + os.sep + "Font"):
+        for root_dir in sorted(glob.glob(os.path.join(base, "custom_nodes", pattern))):
+            if os.path.isdir(root_dir):
+                scan(root_dir)
 
     local_font = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
     if os.path.isdir(local_font):
@@ -279,7 +282,7 @@ def _flatten_images(value: Any, scale: float = 1.0) -> List[Image.Image]:
 # ---------------------------------------------------------------- 节点
 
 class XYGridDrawer:
-    """把 XY 扫描的多张图拼成一张带标签的图表（ZML_XY_Grid_Drawer 的替代品）。"""
+    """把 XY 扫描产出的多张图拼成一张带标签的图表。"""
 
     @classmethod
     def INPUT_TYPES(cls) -> Dict[str, Any]:
@@ -294,7 +297,7 @@ class XYGridDrawer:
                     "tooltip": "画在图表正上方的总标题，留空不画",
                 }),
                 "字体": (fonts, {
-                    "tooltip": "优先列出 ComfyUI-ZML-Image 的字体，其次系统字体",
+                    "tooltip": "优先列出 custom_nodes 下各插件自带的字体，其次本插件 fonts/ 与系统字体",
                 }),
                 "字体文件路径": ("STRING", {
                     "default": "",
@@ -304,18 +307,18 @@ class XYGridDrawer:
                 "网格间距": ("INT", {"default": 20, "min": 0, "max": 400, "step": 2}),
                 "列数": ("INT", {
                     "default": 0, "min": 0, "max": 64, "step": 1,
-                    "tooltip": "0 = 按图表信息排布（与 ZML 一致）；填 N 则强制每行 N 列，"
+                    "tooltip": "0 = 按图表信息排布（排成一条长条）；填 N 则强制每行 N 列，"
                                "超出换行并自动改为『逐格标注』。图多时建议填 5~8。",
                 }),
                 "标签样式": (["轴标签(表头)", "逐格标注", "不显示"], {
                     "default": "轴标签(表头)",
-                    "tooltip": "轴标签：列标签在顶部、行标签在左侧（ZML 行为）；"
+                    "tooltip": "轴标签：列标签在顶部、行标签在左侧；"
                                "逐格标注：每张图下方写自己的标签（需配合列数换行）",
                 }),
             },
             "optional": {
                 "图表信息": ("*", {
-                    "tooltip": "接 XY lora模型加载 的「图表信息」（ZML_GRID_INFO 字典）",
+                    "tooltip": "接 XY lora模型加载 的「图表信息」（XY_GRID_INFO 字典）",
                 }),
                 "标签列表": ("STRING", {
                     "forceInput": True,

@@ -1,15 +1,14 @@
 """
-XY lora模型加载 —— 按名字选 LoRA 的 XY 权重扫描
+XY lora模型加载 —— 按名字选 LoRA 的权重扫描
 --------------------------------------------
-ComfyUI 自带的 `ZML_XY_LoRA_Loader` 只能"扫描文件夹里前 N 个 LoRA"，无法指定某一个。
-本节点改为**用名字指定 LoRA**，其余行为（权重扫描 + 输出图表信息）与 ZML 节点保持一致，
-因此可以直接对接 `ZML_XY_Grid_Drawer` 绘制带标签的 XY 图表。
+用名字指定某一个 LoRA，从「权重起始值」到「权重结束值」均分「权重档数」档，
+输出模型 / CLIP 列表 + 图表信息，可直接对接本包的「XY lora图像拼接」绘制带标签的图表。
 
 设计要点：
 - 输入直接是 MODEL（不是 checkpoint），所以适配 Anima / Krea2 这类
-  UNETLoader + CLIPLoader 的模型（Efficiency 与 Easy-Use 的 XY 都要求 checkpoint，用不了）。
+  UNETLoader + CLIPLoader 的模型。
 - 扫描轴是**权重**：从"权重起始值"到"权重结束值"均分"权重档数"档。
-- 具体画成几行几列由 `ZML_XY_Grid_Drawer` 依据图表信息自动决定。
+- 具体画成几行几列由拼接节点依据图表信息自动决定。
 
 LoRA 名称支持三种写法：
     1. 相对路径（推荐，与 ComfyUI 的 loras 目录一致）
@@ -19,6 +18,7 @@ LoRA 名称支持三种写法：
     3. 绝对路径
 """
 
+import glob
 import json
 import math
 import os
@@ -31,21 +31,27 @@ import folder_paths
 from PIL import Image, ImageDraw, ImageFont
 
 
+def _font_roots():
+    """custom_nodes 下各插件自带的字体目录（形如 <插件>/…/Font），按路径排序。"""
+    base = os.path.join(folder_paths.base_path, "custom_nodes")
+    roots = []
+    for pattern in ("*" + os.sep + "Font", "*" + os.sep + "*" + os.sep + "Font"):
+        roots += [d for d in glob.glob(os.path.join(base, pattern)) if os.path.isdir(d)]
+    return sorted(set(roots))
+
+
 def _find_font(name: str):
-    """在 ComfyUI 字体目录里找一个可用字体文件。"""
-    cands = [
-        os.path.join(folder_paths.base_path, "custom_nodes", "ComfyUI-ZML-Image", "zml_w", "Font", name),
-        os.path.join(folder_paths.base_path, "custom_nodes", "ComfyUI-ZML-Image", "zml_w", "Font", "可商用", "中文", name),
-    ]
-    for c in cands:
-        if os.path.exists(c):
-            return c
-    # 兜底：扫一遍常用字体目录
+    """在 ComfyUI 各插件的字体目录里找一个可用字体文件。"""
+    for root in _font_roots():
+        for cand in (os.path.join(root, name),
+                     os.path.join(root, "可商用", "中文", name)):
+            if os.path.exists(cand):
+                return cand
+    # 兜底：扫一遍插件目录里任何名字带 Font 的目录
     base = os.path.join(folder_paths.base_path, "custom_nodes")
     for root, _dirs, files in os.walk(base):
-        if os.path.basename(root) == "Font" or "Font" in root:
-            if name in files:
-                return os.path.join(root, name)
+        if "Font" in os.path.basename(root) and name in files:
+            return os.path.join(root, name)
     return None
 
 
@@ -168,7 +174,7 @@ class XYLoRA:
             },
         }
 
-    RETURN_TYPES = ("MODEL", "CLIP", "ZML_GRID_INFO", "STRING")
+    RETURN_TYPES = ("MODEL", "CLIP", "XY_GRID_INFO", "STRING")
     RETURN_NAMES = ("模型", "CLIP", "图表信息", "标签列表")
     OUTPUT_IS_LIST = (True, True, False, True)
     FUNCTION = "load_by_name"
@@ -291,15 +297,16 @@ class ImageBadge:
 
     @staticmethod
     def _font_file():
-        base = os.path.join(folder_paths.base_path, "custom_nodes", "ComfyUI-ZML-Image",
-                            "zml_w", "Font")
-        for rel in (os.path.join("可商用", "中文", "nfdcsCN24.ttf"),
-                    os.path.join("可商用", "中文", "nfdcsCN16.ttf"),
-                    "arial.ttf"):
-            p = os.path.join(base, rel)
-            if os.path.exists(p):
-                return p
-        # 兜底：任何 ttf
+        cands = (os.path.join("可商用", "中文", "nfdcsCN24.ttf"),
+                 os.path.join("可商用", "中文", "nfdcsCN16.ttf"),
+                 "arial.ttf")
+        for root in _font_roots():
+            for rel in cands:
+                p = os.path.join(root, rel)
+                if os.path.exists(p):
+                    return p
+        # 兜底：插件目录里任何 ttf/otf
+        base = os.path.join(folder_paths.base_path, "custom_nodes")
         for root, _d, files in os.walk(base):
             for f in files:
                 if f.lower().endswith((".ttf", ".otf")):

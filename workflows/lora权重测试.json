@@ -547,7 +547,7 @@
         },
         {
           "name": "图表信息",
-          "type": "ZML_GRID_INFO",
+          "type": "XY_GRID_INFO",
           "slot_index": 2,
           "links": [
             15
@@ -1192,7 +1192,7 @@
       2,
       12,
       1,
-      "ZML_GRID_INFO"
+      "XY_GRID_INFO"
     ],
     [
       16,
