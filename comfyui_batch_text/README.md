@@ -1,6 +1,6 @@
 # comfyui_batch_text
 
-批量读取 txt 提示词 → 一段预览文本，或逐条编码成条件（一条文本一张图）。
+批量读取 txt 提示词 → 一段预览文本，或批量生成生图用的条件（一条文本一张图）。
 
 从 `comfyui_XYLoRA` 里拆出来的独立插件，只做文本，不依赖任何第三方节点。
 
@@ -37,7 +37,7 @@
     ...
 ```
 
-### 批量文本生条件（一条文本一张图） · `comfyui_BatchTextToCond`
+### 批量文本生成 · `comfyui_BatchTextToCond`
 
 读 txt → 逐条 `clip.tokenize` + 编码，正向条件按**列表**输出，KSampler 因此会逐条执行。
 
@@ -70,7 +70,7 @@
 ## 典型用法
 
 ```
-[批量文本生条件] ─正向条件─► KSampler ─► VAEDecode ─► [XY lora图像保存]
+[批量文本生成] ─正向条件─► KSampler ─► VAEDecode ─► [XY lora图像保存]
         └─标签列表──────────────────────────────────┘
         └─文本预览─► ShowText（核对读到的提示词）
 ```

@@ -1,7 +1,7 @@
 """comfyui_batch_text —— 批量读取文本 → 提示词 / 条件
 
 1) BatchTextPrompts  → comfyui_BatchTextPrompts  批量读 txt，输出一段纯文本（只看/复制用）
-2) BatchTextToCond   → comfyui_BatchTextToCond   批量读 txt，逐条编码成条件（一条文本一张图）
+2) BatchTextToCond   → comfyui_BatchTextToCond   批量文本生成：批量读 txt，逐条编码成条件
 """
 
 import io, os, re, glob
@@ -236,5 +236,5 @@ NODE_CLASS_MAPPINGS = {
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "comfyui_BatchTextPrompts": "批量文本读取（仅输出文本）",
-    "comfyui_BatchTextToCond": "批量文本生条件（一条文本一张图）",
+    "comfyui_BatchTextToCond": "批量文本生成",
 }
